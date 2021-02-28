@@ -9,11 +9,11 @@ import _ from 'helpers/utils'
 import schema from './schema'
 
 const router = Router()
-const usersService = UsersService.getInstance()
 
 const validateEmailUser: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await usersService.findByEmail(req.body.email)
+    const { email } = req.body
+    const user = await UsersService.findByEmail(email)
     if (user !== undefined) return BadRequestError(res, 'User already registered')
     next()
   } catch (error) {
@@ -25,8 +25,9 @@ const validateEmailUser: RequestHandler = async (req: Request, res: Response, ne
 const createUser: RequestHandler = async (req: Request, res: Response) => {
   try {
     const reqUser: ReqUser = req.body
-    const user = await usersService.save(reqUser)
-    return SuccessResponse(res, 'Successful registration', { data: _.pick(user, ['id']) })
+    const host = req.headers.host ?? ''
+    const user = await UsersService.save(reqUser, host)
+    return SuccessResponse(res, 'Successful registration', _.pick(user, ['id']))
   } catch (error) {
     Logger.error('signup createUser ', error)
     return InternalError(res)

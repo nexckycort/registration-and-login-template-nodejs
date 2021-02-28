@@ -4,6 +4,8 @@ export interface ReqUser {
   password: string
 }
 
-export interface User extends ReqUser {
+export interface UserRecord extends ReqUser {
   id: number
+  active: boolean
+  hash: string
 }

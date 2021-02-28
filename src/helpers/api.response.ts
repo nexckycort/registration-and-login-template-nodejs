@@ -28,9 +28,9 @@ export enum ResponseStatus {
 export const SuccessResponse = (res: Response, msg = 'OK', data: any = undefined): Response => {
   const body = {
     message: msg,
-    StatusCode: StatusCode.SUCCESS
+    statusCode: StatusCode.SUCCESS
   }
-  if (data !== undefined) Object.assign(body, data)
+  if (data !== undefined) Object.assign(body, { data })
   return res.status(ResponseStatus.SUCCESS).json(body)
 }
 

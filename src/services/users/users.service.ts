@@ -4,35 +4,36 @@ import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { SendMailOptions } from 'nodemailer'
 
-import UsersModel from 'models/users/users.model'
+import UsersModel from 'models/user/users.model'
 import Logger from 'helpers/logger'
-import { secretKey, urlClient } from 'config'
-import { ReqUser, User } from 'interfaces/user.interfaces'
+import { secretKey } from 'config'
+import { ReqUser, UserRecord } from 'interfaces/user.interfaces'
 import { confirmAccountHtml, confirmAccountText } from 'helpers/templates/emails/confirmAccount'
 import { SendEmail } from 'handlers/email'
 
-export default class UsersService {
-  private static instance: UsersService
-  private readonly usersModel!: UsersModel
+class UserService {
+  private static _instance: UserService
+  private readonly usersModel!: typeof UsersModel
   private constructor() {
-    this.usersModel = UsersModel.getInstance()
+    this.usersModel = UsersModel
   }
 
-  public static getInstance(): UsersService {
-    if (UsersService.instance === undefined) {
-      UsersService.instance = new UsersService()
+  public static get instance(): UserService {
+    if (UserService._instance === undefined) {
+      UserService._instance = new UserService()
     }
-    return UsersService.instance
+    return UserService._instance
   }
 
-  save = async (reqUser: ReqUser): Promise<User> => {
+  save = async (reqUser: ReqUser, host: string): Promise<UserRecord> => {
     try {
       const passwordHash = await bcrypt.hash(reqUser.password, 10)
       reqUser.password = passwordHash
 
       const hash = crypto.randomBytes(20).toString('hex')
+      Object.assign(reqUser, { hash })
 
-      const url = [urlClient, 'confirmar-cuenta', hash].join('/')
+      const url = [host, 'confirm-account', hash].join('/')
       const optionsEmail: SendMailOptions = {
         to: reqUser.email,
         subject: 'Confirma tu cuenta',
@@ -42,20 +43,20 @@ export default class UsersService {
 
       SendEmail(optionsEmail)
 
-      const user = await this.usersModel.create<User>(reqUser)
+      const user = await this.usersModel.create<UserRecord>(reqUser)
       return user
     } catch (error) {
-      Logger.error(colors.red('Error UsersService save '), error)
+      Logger.error(colors.red('Error UserService save '), error)
       throw new Error('TECHNICAL ERROR')
     }
   }
 
-  findByEmail = async (email: string): Promise<User | undefined> => {
+  findByEmail = async (email: string): Promise<UserRecord | undefined> => {
     try {
-      const user = await this.usersModel.findOne<User>({ where: { email } })
+      const user = await this.usersModel.findOne<UserRecord>({ where: { email } })
       return user
     } catch (error) {
-      Logger.error(colors.red('Error UsersService save '), error)
+      Logger.error(colors.red('Error UserService save '), error)
       throw new Error('TECHNICAL ERROR')
     }
   }
@@ -65,7 +66,7 @@ export default class UsersService {
       const data = await bcrypt.compare(passwordToCompare, originalPassword)
       return data
     } catch (e) {
-      Logger.error(colors.red('Error UsersService comparePassword '), e)
+      Logger.error(colors.red('Error UserService comparePassword '), e)
       throw new Error('TECHNICAL ERROR')
     }
   }
@@ -74,52 +75,37 @@ export default class UsersService {
     return jwt.sign(data, secretKey, { expiresIn })
   }
 
-  /*
-  validateAccountByHash = async (hash: string): Promise<boolean> => {
+  validateAccountByHash = async (hash: string): Promise<boolean | string> => {
     try {
-      const account = await usersModel.validateAccountByHash(hash)
-      if (account === undefined) return false
-      return (account === 'A')
+      const { active } = await this.usersModel.findOne<{ active: boolean | undefined }>({ where: { hash }, attributes: ['active'] })
+      if (active === undefined) return 'account not valid'
+      return active
     } catch (e) {
-      Logger.error(colors.red('Error UsersService validateAccountByHash '), e)
+      Logger.error(colors.red('Error UserService validateAccountByHash '), e)
       throw e
     }
   }
 
-  validateAccountByUser = async (user: string): Promise<string | false> => {
+  confirmAccount = async (hash: string): Promise<void> => {
     try {
-      const email = await usersModel.validateAccountByUser(user)
-      if (email === undefined) return false
-      return email
+      await this.usersModel.update({ o: { active: true }, where: { hash } })
     } catch (e) {
-      Logger.error(colors.red('Error UsersService validateAccountByUser '), e)
+      Logger.error(colors.red('Error UserService confirmAccount '), e)
       throw e
     }
   }
 
-  confirmAccount = async (hash: string): Promise<any | false> => {
+  /* compareHash = async (hash: string): Promise<number | undefined> => {
     try {
-      const id = await this.compareHash(hash)
-      if (id === undefined) return false
-      await usersModel.activeUser(id)
-      return true
-    } catch (e) {
-      Logger.error(colors.red('Error UsersService confirmAccount '), e)
-      throw e
-    }
-  }
-
-  compareHash = async (hash: string): Promise<number | undefined> => {
-    try {
-      const match = await usersModel.compareHash(hash)
+      const match = await this.usersModel.compareHash(hash)
       return match
     } catch (e) {
-      Logger.error(colors.red('Error UsersService compareHash '), e)
+      Logger.error(colors.red('Error UserService compareHash '), e)
       throw e
     }
-  }
+  } */
 
-  sendEmailRestorePassword = async (email: string, user: string): Promise<void> => {
+  /*  sendEmailRestorePassword = async (email: string, user: string): Promise<void> => {
     try {
       const hash = crypto.randomBytes(20).toString('hex')
 
@@ -152,7 +138,7 @@ export default class UsersService {
       const expiresIn = +user.expira_token - Date.now()
       return expiresIn >= 0
     } catch (e) {
-      Logger.error(colors.red('Error UsersService validateAccountByUser '), e)
+      Logger.error(colors.red('Error UserService validateAccountByUser '), e)
       throw e
     }
   }
@@ -172,3 +158,5 @@ export default class UsersService {
     return jwt.verify(token, secretKey)
   } */
 }
+
+export default UserService.instance

@@ -61,3 +61,22 @@ export const buildUpdate = (options: UpdateOptions, table: string): string => {
   ${whereBuilt} RETURNING *`
   return q
 }
+
+export const buildDelete = (options: { where: any }, table: string): string => {
+  const { where } = options
+  let whereBuilt = 'WHERE '
+  Object.entries(where).forEach(([key, value]) => {
+    let dato = ''
+    if (Array.isArray(value)) {
+      dato = ` in (${value.join(',')})`
+    } else {
+      dato = typeof value === 'string' ? `= '${value}'` : value === null ? ' IS NULL' : `=${value}`
+    }
+    whereBuilt += key + dato + ' AND '
+  })
+  whereBuilt = whereBuilt.slice(0, whereBuilt.length - 4)
+
+  const q = `DELETE FROM ${table}
+    ${whereBuilt}RETURNING *`
+  return q
+}

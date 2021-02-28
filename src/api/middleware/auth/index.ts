@@ -16,9 +16,7 @@ export default router.use('/', validator(schema.headers, ValidationSource.HEADER
   try {
     jwt.verify(token, secretKey)
   } catch (error) {
-    if (String(error).includes('invalid token')) {
-      return AuthFailureError(res, 'Token is not valid')
-    }
+    if (String(error).includes('invalid token')) return AuthFailureError(res, 'Token is not valid')
     if (String(error).includes('jwt expired')) return AuthFailureError(res, 'Token is expired')
     Logger.error(error)
     return AuthFailureError(res)

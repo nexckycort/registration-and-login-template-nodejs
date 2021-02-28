@@ -1,12 +1,15 @@
 import nodemailer, { SendMailOptions } from 'nodemailer'
-import { emailHost, emailPassword, emailPort, emailUser } from 'config'
+import colors from 'colors'
+
+import { email } from 'config'
+import Logger from 'helpers/logger'
 
 const transporter = nodemailer.createTransport({
-  host: emailHost,
-  port: emailPort,
+  host: email.host,
+  port: email.port,
   auth: {
-    user: emailUser,
-    pass: emailPassword
+    user: email.user,
+    pass: email.password
   }
 } as any)
 
@@ -15,13 +18,11 @@ export const SendEmail = (Options: SendMailOptions): void => {
 
   transporter.sendMail(optionsEmail, (error, info) => {
     if (error !== null) {
-      console.log('Error occurred')
-      console.log(error.message)
-      return process.exit(1)
+      Logger.error(colors.red(`Error occurred while sending an email to ${optionsEmail.to}`), error.message)
+      return
     }
 
-    console.log('Message sent successfully!')
-
+    Logger.info(colors.blue.bold.italic(`Message sent a ${optionsEmail.to} successfully!`))
     transporter.close()
   })
 }

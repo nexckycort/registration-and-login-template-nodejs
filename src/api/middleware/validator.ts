@@ -11,6 +11,7 @@ export enum ValidationSource {
 
 export const JoiAuthBearer = (): StringSchema =>
   Joi.string().custom((value: string, helpers) => {
+    console.log(value.split(' ')[1])
     if (!value.startsWith('Bearer ')) return helpers.error('any.invalid')
     if (value.split(' ')[1] === '') return helpers.error('any.invalid')
     return value

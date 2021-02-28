@@ -1,5 +1,5 @@
 import { FindOptions, UpdateOptions } from 'interfaces/querys.interfaces'
-import { buildSelect, buildInsert, buildUpdate } from 'helpers/querys'
+import { buildSelect, buildInsert, buildUpdate, buildDelete } from 'helpers/querys'
 import { pool } from 'loaders/pgPool'
 import * as querys from 'models/querys.models'
 
@@ -40,5 +40,11 @@ export default class MasterServices {
     const q = querys.deleteByPk(identifier, this.table)
     const { rows } = await pool.query(q)
     return rows[0]
+  }
+
+  deleteOne = async <T>(options: { where: any }): Promise<T> => {
+    const q = buildDelete(options, this.table)
+    const { rows } = await pool.query(q)
+    return rows[0] as T
   }
 }
